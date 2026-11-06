@@ -3,6 +3,7 @@ library(tidyr)
 library(dplyr)
 library(ggrepel)
 library(scales)
+library(modelsummary)
 
 all_data <- read.csv('bobbleheads.csv')
 mets_data <- subset(all_data, home_team == "New York Mets")
@@ -47,4 +48,7 @@ with(data=mets_data,plot(ordered_month, attend/1000,
 
 my.model <- {attend ~ ordered_month + ordered_day_of_week + bobblehead}
 my.model.fit <- lm(my.model, data = mets_data)# use all available data
-print(summary(my.model.fit))
+(summary(my.model.fit))
+
+modelsummary(list("New York Mets" = my.model.fit),
+             stars = TRUE, gof_map = c("nobs", "r.squared", "adj.r.squared"))
