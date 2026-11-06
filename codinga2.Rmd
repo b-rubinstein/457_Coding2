@@ -1,0 +1,205 @@
+---
+title: "codinga2"
+output: html_document
+---
+
+```{r}
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+library(ggrepel)
+library(scales)
+library(modelsummary)
+
+all_data <- read.csv('bobbleheads.csv')
+mets_data <- subset(all_data, home_team == "New York Mets")
+mets_data
+```
+
+# FIGURE 7.1
+```{r}
+mets_data$ordered_day_of_week <- with(data=mets_data,
+                                    ifelse ((day_of_week == "Monday"),1,
+                                            ifelse ((day_of_week == "Tuesday"),2,
+                                                    ifelse ((day_of_week == "Wednesday"),3,
+                                                            ifelse ((day_of_week == "Thursday"),4,
+                                                                    ifelse ((day_of_week == "Friday"),5,
+                                                                            ifelse ((day_of_week == "Saturday"),6,7)))))))
+mets_data$ordered_day_of_week <- factor(mets_data$ordered_day_of_week, levels=1:7,
+                                      labels=c("Mon", "Tue", "Wed", "Thur", "Fri", "Sat", "Sun"))
+
+
+with(data=mets_data,plot(ordered_day_of_week, attend/1000,
+                       xlab = "Day of Week", ylab = "Attendance (thousands)",
+                       col = "violet", las = 1))
+```
+
+# FIGURE 7.2
+```{r}
+mets_data$ordered_month <- with(data=mets_data,
+                                ifelse ((month == "APR"),4,
+                                        ifelse ((month == "MAY"),5,
+                                                ifelse ((month == "JUN"),6,
+                                                        ifelse ((month == "JUL"),7,
+                                                                ifelse ((month == "AUG"),8,
+                                                                        ifelse ((month == "SEP"),9,10)))))))
+mets_data$ordered_month <- factor(mets_data$ordered_month, levels=4:10,
+                                  labels = c("April", "May", "June", "July", "Aug", "Sept", "Oct"))
+
+with(data=mets_data,plot(ordered_month, attend/1000,
+                         xlab = "Month", ylab = "Attendance (thousands)",
+                         col = "lightblue", las = 1))
+```
+
+# TABLE 7.2
+```{r}
+my.model <- {attend ~ ordered_month + ordered_day_of_week + bobblehead}
+my.model.fit <- lm(my.model, data = mets_data)# use all available data
+(summary(my.model.fit))
+
+modelsummary(list("New York Mets" = my.model.fit),
+             stars = TRUE, gof_map = c("nobs", "r.squared", "adj.r.squared"))
+```
+
+# REFACTORED FIGURE 7.1
+```{r}
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+library(ggrepel)
+library(scales)
+library(cowplot)
+
+all_data <- read.csv('bobbleheads.csv')
+mets_data <- subset(all_data, home_team == "New York Mets")
+mets_data
+
+# Figure 7.1
+
+order <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+mets_data <- mets_data |> mutate(day_of_week = factor(day_of_week, levels = order))
+
+ggplot(mets_data, aes(x = day_of_week, y = attend/1000)) +
+  geom_boxplot(fill = 'violet') +
+  labs(
+    title="Mets Game Attendance by Day of Week",
+    subtitle = '2012 Season Data',
+    x = "Day",
+    y = "Attendance (thousands)"
+  ) + theme_cowplot()
+```
+
+# REFACTORED FIGURE 7.2
+```{r}
+order <- c("APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT")
+mets_data <- mets_data |> mutate(month = factor(month, levels = order,
+                                 labels = c("April", "May", "June", "July", "August", "September", "October")))
+
+ggplot(mets_data, aes(x = month, y = attend/1000)) +
+  geom_boxplot(fill = 'lightblue') +
+  labs(
+    title="Mets Game Attendance by Month",
+    subtitle = '2012 Season Data',
+    x = "Month",
+    y = "Attendance (thousands)"
+  ) + theme_cowplot()
+```
+
+# FULL MLB FIGURE 7.1
+
+```{r}
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+library(ggrepel)
+library(scales)
+library(cowplot)
+library(modelsummary)
+
+all_data <- read.csv('bobbleheads.csv')
+mets_data <- subset(all_data, home_team == "New York Mets")
+
+order <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+mets_data <- mets_data |> mutate(day_of_week = factor(day_of_week, levels = order))
+all_data <- all_data |> mutate(day_of_week = factor(day_of_week, levels = order))
+
+comparison <-bind_rows(mets_data |> mutate(group = "New York Mets"),
+                                           all_data |> mutate(group = "Full MLB"))
+
+ggplot(comparison, aes(x = day_of_week, y = attend/1000, fill=group)) +
+  geom_boxplot() +
+  labs(
+    title="Game Attendance by Day of Week",
+    subtitle = '2012 Season Data - Full MLB vs Mets',
+    x = "Day",
+    y = "Attendance (thousands)"
+  ) + theme_cowplot()
+
+```
+
+
+# FULL MLB FIGURE 7.2
+
+```{r}
+order <- c("APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT")
+mets_data <- mets_data |> mutate(month = factor(month, levels = order,
+                                                labels = c("April", "May", "June", "July", "August", "September", "October")))
+
+all_data <- all_data |> mutate(month = factor(month, levels = order,
+                                                labels = c("April", "May", "June", "July", "August", "September", "October")))
+
+
+comparison <-bind_rows(mets_data |> mutate(group = "New York Mets"),
+                       all_data |> mutate(group = "Full MLB"))
+
+
+ggplot(comparison, aes(x = month, y = attend/1000, fill=group)) +
+  geom_boxplot() +
+  labs(
+    title="Game Attendance by Month",
+    subtitle = '2012 Season Data - Full MLB vs Mets',
+    x = "Month",
+    y = "Attendance (thousands)"
+  ) + theme_cowplot()
+```
+
+
+# FULL MLB TABLE 7.2
+
+```{r}
+mets_model <- lm(attend ~ month + day_of_week + bobblehead, data = mets_data)
+all_model <- lm(attend ~ month + day_of_week + bobblehead, data = all_data)
+
+summary(mets_model)
+summary(all_model)
+
+models_list <- list("Mets" = mets_model,
+                    "Full MLB" = all_model)
+
+modelsummary(models_list, stars = TRUE,
+             gof_map = c("nobs", "r.squared", "adj.r.squared"))
+```
+
+
+# COMPARISON DAY OF WEEK
+
+```{r}
+mets_data_DAY <- mets_data |> group_by(day_of_week) |> summarize("Avg_Mets_day" = mean(attend))
+all_data_DAY <- all_data |> group_by(day_of_week) |> summarize("Avg_All_day" = mean(attend))
+
+diffDAY <- left_join(mets_data_DAY, all_data_DAY, by = "day_of_week") |>
+  mutate(difference_day = Avg_Mets_day - Avg_All_day) |> arrange(difference_day)
+diffDAY
+```
+
+
+# COMPARISON MONTH
+```{r}
+mets_data_MONTH <- mets_data |> group_by(month) |> summarize("Avg_Mets_month" = mean(attend))
+all_data_MONTH <- all_data |> group_by(month) |> summarize("Avg_All_month" = mean(attend))
+
+diffMONTH <- left_join(mets_data_MONTH, all_data_MONTH, by = "month") |>
+  mutate(difference = Avg_Mets_month - Avg_All_month) |> arrange(difference)
+diffMONTH
+```
+
